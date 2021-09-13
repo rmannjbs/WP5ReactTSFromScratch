@@ -1,4 +1,4 @@
-# Creating a React App from scratch - Webpack@5, TypeScript@4+, React@16+
+# Part 1 - Creating a React App from scratch - Webpack@5, TypeScript@4+, React@17+
 
 ## Intro
 
@@ -21,6 +21,9 @@ I'm also going to assume you have the latest version of npm installed, if not, u
 
 -----------
 
+## Git Resource:
+You can clone the git repository here to already have all these steps: https://github.com/rmannjbs/WP5ReactTSFromScratch
+
 ## Initializing your node project
 
 **The first command we'll run is:**
@@ -29,13 +32,15 @@ I'm also going to assume you have the latest version of npm installed, if not, u
 npm init 
 ```
 
-This command initialized your project so it'll have a package.json with some defaults setup.  You can walk through the prompt and choose whatever you feel is appropriate for settings, just take the defaults if you want.
+This command initializes your project so it'll have a package.json with some defaults setup.  You can walk through the prompt and choose whatever you feel is appropriate for settings, just take the defaults if you want.
 
 -----------
 
 ## Installing Yarn
 
 > Now let's install yarn, as we'll be using it for all farther package depedency installs from this point forward.  If you're curious about yarn you can check out the documentation here: https://classic.yarnpkg.com/en/docs
+
+Note: when using yarn it is important that you don't use NPM anymore (except for global packages) as it will create a package.lock.json that conflcits with yarn.lock.json.  So you need to either only use NPM or only use Yarn.  For this turotiral I'll be using yarn from here on.
 
 **Run the following command:**
 
@@ -76,10 +81,10 @@ in this project I have stopped at the last sass version before the warnings were
 
 ## Installing WebPack
 
-Now let's start diving into the first depedencies for building a react app with WebPack version 5+ **(the latest version)**.  For a reference to webpack you can visit their website: https://webpack.js.org/concepts/
+Now let's start diving into the first depedencies for building a react app with WebPack version 5+.  For a reference to webpack you can visit their website: https://webpack.js.org/concepts/
 
 ``` node
-yarn add -D webpack@latest webpack-cli
+yarn add -D webpack@5 webpack-cli
 ```
 
 ### Installing Webpack plugins we'll use in this tutorial
@@ -144,7 +149,7 @@ yarn add -D @babel/core babel-loader @babel/register @babel/preset-env @babel/pr
 **Run the following command:**
 
 ``` node
-yarn add -D typescript
+yarn add -D typescript@4
 ```
 
 **Now let's create a tsconfig.json in the root of the project and setup some compiler options... we'll use the following contents for tsconfig.json:**
@@ -558,6 +563,8 @@ module.exports = getBaseWebPackConfig
 
 ## Setting up our SCSS
 
+We'll setup some basic SCSS here just as a rough example, more in depth scss tutorial for setting up bootstrap 5 for fully will have to come in a follow up blog.
+
 1. Create a src folder in the root of the app if not created already.
 2. Under src, create an assets folder.
 3. Under assets, create a folder called scss.
@@ -603,14 +610,14 @@ $fa-font-path: '~font-awesome/fonts';
 1. Under src create a folder called components
 2. Under components create a folder called routes
 3. Under routes create a folder called home
-4. Under home create a file called index.tsx and HomePage.tsx
+4. Under home create a file called index.tsx and HomeRoute.tsx
 
-**Add the following contents to HomePage.tsx:**
+**Add the following contents to HomeRoute.tsx:**
 
 ``` TSX
 import React from 'react';
 
-export const HomePage = () => {
+export const HomeRoute = () => {
     return (
         <h1>Hello World!</h1>
     )
@@ -620,13 +627,13 @@ export const HomePage = () => {
 **Add the following contents to home/index.tsx**
 
 ``` Tsx
-export * from './HomePage';
+export * from './HomeRoute'; //exports all things exported by HomeRoute.tsx
 ```
 
 5. Under routes add a file called index.tsx and add the following contents for it: 
 
 ``` TSX
-export * as Home from './home';
+export * from './home'; //exports all things exports by index.tsx under /home
 ```
 
 6. Under Components create a file called App.Tsx and add the following contents:
@@ -650,19 +657,30 @@ export const App = () => {
 }
 ```
 
-## Let's create our package.json scripts now to get ready to build:
+> Confused what the index files are for?  Imports in es6/typescript automatically look for a file called index with various extensions like .js or .ts or .jsx or .tsx.  So when you do ```import thing from 'somepath'``` the import resolver will either look for something at the root called "somepath" and import that, or look for something in the 'somepath' folder called index and load that.  So by exporting everything from inside an index it lets you import many things from one path which saves boiler plate on import statements so you can do something like the following:
 
-**Add the following scripts section to your package.json:**
-
-``` JSON
-  "scripts": {
-    "build": "webpack --config ./build/webpack/local.webpack.config.babel.js --env=localdev",
-    "start": "webpack serve --open --config ./build/webpack/local.webpack.config.babel.js --env=localdev"
-  }
+```
+import { Animal, Dog, Cat, Cow, Horse, Pig } from '@models' //where @models is a type alias in the paths section of your 
+//tsconfig.json were @models points to a folder with an index file exporting all of your models. for i.e.
 ```
 
-> Note: the --env flag is how you pass environment flags to the webpack config, here we're passing an environment flag called localdev (which is made up right here)
+7. Under src, create a file called index.tsx (this will be our main entry point) and add the following contents:
 
+```
+import React from 'react';
+import { render } from 'react-dom';
+import { App } from './components/App';
+
+function index() {
+    return (
+        <React.StrictMode>
+            <App />
+        </React.StrictMode>
+    )
+}
+
+render(index(), document.getElementById('appMainBody'));
+```
 ## Install non dev depedencies before running build
 
 > We're about done setting up an initial hello world app from scratch but first we need to install all our run time depedencies like React, React-Router, @types, Luxon, Bootstrap, etc (or anything else you want in your application)
@@ -678,5 +696,30 @@ yarn add @popperjs/core bootstrap@5 font-awesome history react react-bootstrap@2
 //Install typescript types for depedencies
 yarn add @types/react @types/react-bootstrap @types/react-dom @types/react-router @types/react-router-dom
 ```
+
+## Let's create our package.json scripts now to get ready to build:
+
+**Add the following scripts section to your package.json:**
+
+``` JSON
+  "scripts": {
+    "build": "webpack --config ./build/webpack/local.webpack.config.babel.js --env=localdev",
+    "start": "webpack serve --open --config ./build/webpack/local.webpack.config.babel.js --env=localdev"
+  }
+```
+
+> Note: the --env flag is how you pass environment flags to the webpack config, here we're passing an environment flag called localdev (which is made up right here)
+
+## run the build
+
+Let's test the output of the build now and see if it runs and generates our dst folder we made in the webpack config and the paths.js config file, run the following command:
+
+```
+yarn build
+```
+
+
+
+
 
 TODO | Test, Final Output, Add hot module reload.  Blog 2 - How to optimize bundle output
