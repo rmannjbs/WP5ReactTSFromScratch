@@ -4,6 +4,7 @@ import HtmlWebpackPlugin from 'html-webpack-plugin'; //docs -> https://webpack.j
 import tsConfigPathPlugin from 'tsconfig-paths-webpack-plugin'; //docs -> https://www.npmjs.com/package/tsconfig-paths-webpack-plugin
 import TerserPlugin from 'terser-webpack-plugin'; //docs -> https://github.com/webpack-contrib/terser-webpack-plugin
 import sass from 'sass'; //docs -> https://sass-lang.com/install
+import ESLintPlugin from 'eslint-webpack-plugin';
 
 
 //separate so we can call it differently pending on build environment
@@ -21,7 +22,11 @@ function getPlugins(env) {
     })
 
     return [
-        htmlWebPackPlugin
+        htmlWebPackPlugin,
+        new ESLintPlugin({
+            context: paths.root,
+            extensions: ["js", "jsx", "ts", "tsx"],
+        })
     ]
 }
 

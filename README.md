@@ -23,6 +23,7 @@ I'm also going to assume you have the latest version of npm installed, if not, u
 
 ## Git Resource:
 You can clone the git repository here to already have all these steps: https://github.com/rmannjbs/WP5ReactTSFromScratch
+If you want to just examine the repo you can install yarn globally and just run "yarn install" on the project to install all the depedencies.
 
 ## Initializing your node project
 
@@ -91,6 +92,7 @@ yarn add -D webpack@5 webpack-cli
 
 | Plugin Name |  Usage  |
 | ----------- | ---------- |
+| eslint-webpack-plugin | used to enable eslint in the webpack build process and Hot Module Replacement |
 | tsconfig-paths-webpack-plugin | used to resolve imports from tsconfig path aliases |
 | sass-loader | used to process Syntactically Awesome Style Sheets |
 | postcss-loader | used to post process css files to apply auto prefixer |
@@ -103,7 +105,7 @@ yarn add -D webpack@5 webpack-cli
 **Next: install the plugins by running following command:**
 
 ``` node
-yarn add -D tsconfig-paths-webpack-plugin sass-loader postcss-loader css-loader style-loader terser-webpack-plugin html-webpack-plugin webpack-dev-server
+yarn add -D tsconfig-paths-webpack-plugin sass-loader postcss-loader css-loader style-loader terser-webpack-plugin html-webpack-plugin webpack-dev-server eslint-webpack-plugin
 ```
 
 ## Installing Babel
@@ -200,7 +202,7 @@ For now I've told it to use ES2019 for a target, allowJs is true which allows yo
 > run the following command
 
 ``` node
-yarn add -D eslint typescript-eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-import-resolver-typescript eslint-plugin-react
+yarn add -D eslint typescript-eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-import-resolver-typescript eslint-plugin-react eslint-plugin-react-hooks
 ```
 
 > Note* We went ahead and grabbed the typescript stuff we need to make eslint work with typescript and a plugin for react for eslint in this step, we'll set them up later.
@@ -216,43 +218,54 @@ code standards and writing code a specific way.
 
 >Edit your package json and add the following section to your package.json (this prevents having to have it as a root file in the project .. i.e. eslintrc.json)
 
-**note take out all the comments, they are not compatible with json:**
 
 ``` JSON
-  "eslintConfig":
-    "root": true,     
-    "parser": "@typescript-eslint/parser", //tells eslint to use typescript parser
+  "eslintConfig": {
+    "root": true,
+    "parser": "@typescript-eslint/parser",
     "plugins": [
       "import",
-      "@typescript-eslint"  //tells eslint to use typescript eslint
+      "@typescript-eslint"
     ],
     "parserOptions": {
-      "ecmaVersion": 2019, //which version of ecma to target
+      "ecmaVersion": 2019,
       "sourceType": "module",
       "ecmaFeatures": {
-        "jsx": true //enables jsx linting
+        "jsx": true
       }
     },
     "rules": {
-      "import/no-unresolved": "error" //all the rules for the linter to enforce and whether to error out or warn
+      "import/no-unresolved": "warning",
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn"      
     },
     "settings": {
       "import/parsers": {
-        "@typescript-eslint/parser": [".ts", ".tsx"] //configure which file extensions the typescript linter will process for imports
+        "@typescript-eslint/parser": [
+          ".ts",
+          ".tsx"
+        ]
       },
       "import/resolver": {
         "typescript": {
-          "alwaysTryTypes": true 
+          "alwaysTryTypes": true
         }
       }
     },
     "extends": [
       "eslint:recommended",
       "plugin:@typescript-eslint/eslint-recommended",
-      "plugin:@typescript-eslint/recommended"
+      "plugin:@typescript-eslint/recommended",
+      "plugin:react/recommended",
+      "plugin:react-hooks/recommended"
     ]
   }
 ```
+
+> Notes on ESLint Json:
+We've added plugins for react and react rules of hooks here so you get linting on react and will get errors
+if you use hooks incorrectly in your source code.  You can add more rules for react if you'd like, they are found here: https://github.com/yannickcr/eslint-plugin-react
+
 
 ## Setting up the project folder structure
 
@@ -616,10 +629,17 @@ $fa-font-path: '~font-awesome/fonts';
 
 ``` TSX
 import React from 'react';
+import { Container, Col, Row } from 'react-bootstrap';
 
 export const HomeRoute = () => {
     return (
-        <h1>Hello World!</h1>
+        <Container fluid className="px-0">
+            <Row>
+                <Col xs={12}>
+                    <h1 className="bg-primary text-center">Hello World!</h1>
+                </Col>
+            </Row>
+        </Container>
     )
 }
 ```
@@ -633,7 +653,7 @@ export * from './HomeRoute'; //exports all things exported by HomeRoute.tsx
 5. Under routes add a file called index.tsx and add the following contents for it: 
 
 ``` TSX
-export * from './home'; //exports all things exports by index.tsx under /home
+export * as Home from './home'; //exports all things exports by index.tsx under /home
 ```
 
 6. Under Components create a file called App.Tsx and add the following contents:
@@ -642,13 +662,14 @@ export * from './home'; //exports all things exports by index.tsx under /home
 import React from 'react';
 import { BrowserRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import * as AppRoutes from './routes';
+import { HomeRoute } from './routes/home';
 
 export const App = () => {
     return (
         <BrowserRouter>
             <Routes>                              
-                <Route path="/home" element={<p>Shite two </p>}>
-                    <Route path="/" element={(<p>shite!</p>)} />                    
+                <Route path="/home" element={<Outlet />}>
+                    <Route path="/" element={(<HomeRoute />)} />                    
                 </Route>                
                 <Route path="*" element={<Navigate to="/home" /> } />
             </Routes>
@@ -710,13 +731,33 @@ yarn add @types/react @types/react-bootstrap @types/react-dom @types/react-route
 
 > Note: the --env flag is how you pass environment flags to the webpack config, here we're passing an environment flag called localdev (which is made up right here)
 
-## run the build
+## Run the build
 
 Let's test the output of the build now and see if it runs and generates our dst folder we made in the webpack config and the paths.js config file, run the following command:
 
 ```
 yarn build
 ```
+
+Your output should resemble: 
+![](https://github.com/rmannjbs/WP5ReactTSFromScratch/blob/master/blogAssets/images/buildOutput.png?raw=true)
+
+
+## Run the debug server and work on the code locally
+
+Run the following command: 
+
+``` yarn start ```
+
+Your webserver should be spinning up and the app should load on port 9000.
+
+
+## Testing the linter hook rules.
+
+Let's test if the linter's rules of hooks is working...
+
+Edit your HomeRoute.tsx and change the content to the following:
+
 
 
 
