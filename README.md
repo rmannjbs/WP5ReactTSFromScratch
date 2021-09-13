@@ -22,9 +22,15 @@ I'm also going to assume you have the latest version of npm installed, if not, u
 -----------
 
 ## Git Resource:
-You can clone the git repository here to already have all these steps: https://github.com/rmannjbs/WP5ReactTSFromScratch
+You can clone the git repository here to already have all these steps: https://github.com/rmannjbs/WP5ReactTSFromScratch.git
+
+```
+cd somePath
+git clone https://github.com/rmannjbs/WP5ReactTSFromScratch.git ./
+```
 If you want to just examine the repo you can install yarn globally and just run "yarn install" on the project to install all the depedencies.
 
+To walk through it from scratch with this guide continue on.
 ## Initializing your node project
 
 **The first command we'll run is:**
@@ -51,7 +57,7 @@ npm install -g yarn
 
 ## Installing SCSS and PostCss
 
-> We'll use these in this tutorial for doing our CSS in SCSS and using post css for auto prefixer
+> We'll setup SCSS and post css with auto prefixer in this tutorial to illustrate how.  First we need to install some depedencies...
 
 **Run the following command:**
 
@@ -59,7 +65,7 @@ npm install -g yarn
 yarn add -D postcss sass@1.32 postcss-preset-env autoprefixer
 ```
 
->note, we're using sass@1.32 here because the latest version of sass has deprecated warnings to prep scss authors for breaking changes in sass@2.0.0 and some libraries like font-awesome haven't updated their use of the / (division) operator to the new math library yet.  So to not get spammed with deprecation warnings
+>Note, I'm using sass@1.32 here because the latest version of sass has deprecated warnings to prep scss authors for breaking changes in sass@2.0.0 and some libraries like font-awesome haven't updated their use of the / (division) operator to the new math library yet.  So to not get spammed with deprecation warnings
 in this project I have stopped at the last sass version before the warnings were added.  If you don't need SASS this is irrelevant.  If none of your depedencies use / operator for division in their scss files then you can use the latest version without getting spammed with deperecated warnings from the libraries.
 
 **Add the post css config to your package.json by adding it as a new root level property in the json:**
@@ -85,7 +91,7 @@ in this project I have stopped at the last sass version before the warnings were
 Now let's start diving into the first depedencies for building a react app with WebPack version 5+.  For a reference to webpack you can visit their website: https://webpack.js.org/concepts/
 
 ``` node
-yarn add -D webpack@5 webpack-cli
+yarn add -D webpack@"^5.0.0" webpack-cli
 ```
 
 ### Installing Webpack plugins we'll use in this tutorial
@@ -101,21 +107,22 @@ yarn add -D webpack@5 webpack-cli
 | terser-webpack-plugin | used to minify assets |
 | html-webpack-plugin | used to tell webpack to generate an index.html for our project from a template html file |
 | webpack-dev-server | used to run our react app locally with hot module reloading |
+| source-map-loader | lets webpack load source maps for files |
 
 **Next: install the plugins by running following command:**
 
 ``` node
-yarn add -D tsconfig-paths-webpack-plugin sass-loader postcss-loader css-loader style-loader terser-webpack-plugin html-webpack-plugin webpack-dev-server eslint-webpack-plugin
+yarn add -D eslint-webpack-plugin tsconfig-paths-webpack-plugin sass-loader postcss-loader css-loader style-loader terser-webpack-plugin html-webpack-plugin webpack-dev-server source-map-loader
 ```
 
 ## Installing Babel
 
-Next we're going to add all the babel depedencies, we are going to write our webpack config file using babel.  We are going to use all the latest versions of babel.  You can checkout babel at their website: https://babeljs.io/docs/en/  For a short explanation of babel: It is a javascript transpiler that will compile our typescript for us and handle polyfilling for browser targets and making sure compiled JS is compatible with those browser targets.
+Next we're going to add all the babel depedencies, we are going to write our webpack config file using babel.  We are going to use babel 7.  You can checkout babel at their website: https://babeljs.io/docs/en/  For a short explanation of babel: It is a javascript transpiler that will compile our typescript for us and handle polyfilling for browser targets and making sure compiled JS is compatible with those browser targets.
 
 **Run the following command to install the babel depedencies:**
 
 ``` node
-yarn add -D @babel/core babel-loader @babel/register @babel/preset-env @babel/preset-typescript @babel/preset-react core-js@3
+yarn add -D @babel/core@"^7.0.0" babel-loader@"^8.0.0" @babel/register@"^7.0.0" @babel/preset-env@"^7.0.0" @babel/preset-typescript@"^7.0.0" @babel/preset-react@"^7.0.0" core-js@"^3.0.0"
 ```
 
 > So what is all this stuff?
@@ -124,7 +131,7 @@ yarn add -D @babel/core babel-loader @babel/register @babel/preset-env @babel/pr
 
 >Babel is a transpiler for JS, so you just installed the core of babel, babel register, preset-env, and core-js version 3+.  Babel Register allows babel to hook into node's require resolution allowing you to load babel scripts with the .babel.js extension inside of node scripts that will get transpiled by babel.  This enables you to do exports/imports etc in npm scripts.  Preset-env is a set of defaults for how to transpile JS through babel using the latest core-js.  Core-JS contains a slew of polyfills and other standards to ensure your JS will run on your target browsers.  I.e. if you target IE11 and write Javascript that doesn't support IE11 Preset-env will handle pulling in the appropriate poly fills from core-js for you and transpiling your Javascript in a way where it will work on Internet Explorer 11.
 
-**Now add babel config to your package.json (these prevents throwing another file in your source):**
+**Now add babel config to your package.json (this prevents throwing another file in your source):**
 
 ``` JSON
   "babel": {
@@ -151,7 +158,7 @@ yarn add -D @babel/core babel-loader @babel/register @babel/preset-env @babel/pr
 **Run the following command:**
 
 ``` node
-yarn add -D typescript@4
+yarn add -D typescript@"^4.0.0"
 ```
 
 **Now let's create a tsconfig.json in the root of the project and setup some compiler options... we'll use the following contents for tsconfig.json:**
@@ -202,7 +209,7 @@ For now I've told it to use ES2019 for a target, allowJs is true which allows yo
 > run the following command
 
 ``` node
-yarn add -D eslint typescript-eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-import-resolver-typescript eslint-plugin-react eslint-plugin-react-hooks
+yarn add -D eslint eslint-plugin-import typescript-eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-import-resolver-typescript eslint-plugin-react eslint-plugin-react-hooks
 ```
 
 > Note* We went ahead and grabbed the typescript stuff we need to make eslint work with typescript and a plugin for react for eslint in this step, we'll set them up later.
@@ -221,12 +228,15 @@ code standards and writing code a specific way.
 
 ``` JSON
   "eslintConfig": {
+    "env": {
+      "browser": true,
+      "node": true
+    },
+    "globals": {
+      "fetch": true
+    },
     "root": true,
     "parser": "@typescript-eslint/parser",
-    "plugins": [
-      "import",
-      "@typescript-eslint"
-    ],
     "parserOptions": {
       "ecmaVersion": 2019,
       "sourceType": "module",
@@ -234,12 +244,33 @@ code standards and writing code a specific way.
         "jsx": true
       }
     },
+    "plugins": [
+      "@typescript-eslint",
+      "react",
+      "react-hooks",
+      "import"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:react/recommended",
+      "plugin:react-hooks/recommended"
+    ],
     "rules": {
-      "import/no-unresolved": "warning",
+      "@typescript-eslint/no-unused-vars": [
+        "warn"
+      ],
+      "react/prop-types": "warn",
+      "import/no-unresolved": "warn",
       "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn"      
+      "react-hooks/exhaustive-deps": "warn"
     },
     "settings": {
+      "react": {
+        "pragma": "React",
+        "version": "detect"
+      },
       "import/parsers": {
         "@typescript-eslint/parser": [
           ".ts",
@@ -247,18 +278,23 @@ code standards and writing code a specific way.
         ]
       },
       "import/resolver": {
+        "node": {
+          "extensions": [
+            ".ts",
+            ".tsx"
+          ]
+        },
         "typescript": {
+          "extensions": [
+            ".ts",
+            ".tsx",
+            ".js",
+            ".jsx"
+          ],
           "alwaysTryTypes": true
         }
       }
-    },
-    "extends": [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/eslint-recommended",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:react/recommended",
-      "plugin:react-hooks/recommended"
-    ]
+    }
   }
 ```
 
@@ -271,29 +307,36 @@ if you use hooks incorrectly in your source code.  You can add more rules for re
 
 > Now let's create a folder structure in our project to support the webpack build we're getting ready to make.  I have used a very basic example here, but one of the  points of this is your folder structure can be whatever you want it to be.
 
-**Add the following folders and files:**
+**Add the following folders and files:** 
+
+> Note: React Component file names should start with a capital letter because react jsx components have to start with a capital letter.  So in this example I start all their filenames with a capital letter to be consistent with the component being exported in the file.
 
 - build
   - config
     - paths.js
-    - webpack
-      - baseWebPackConfig.js
-      - local.webpack.config.babel.js
-    - htmlTemplates
-      - local.index.html
+  - webpack
+    - baseWebPackConfig.js
+    - local.webpack.config.babel.js
+  - htmlTemplates
+    - local.index.html
 - dst
 - src
   - assets
     - scss
+      - themes
+        - _metroTheme.scss
+      - variables
+        - _vendorVariables.scss        
       - app.scss
       - vendor.scss
-  - routes
-    - home
-      - Home.tsx
   - components
-    - HelloWorld.tsx
-    - index.tsx
-
+    - routes
+      - home
+        - HomeRoute.tsx
+        - index.tsx
+      - index.tsx
+    - App.tsx
+- index.tsx
 ## Filling out the configurations
 
 ### build\config\paths.js
@@ -306,15 +349,20 @@ if you use hooks incorrectly in your source code.  You can add more rules for re
 import path from 'path'; //path library from node.js
 
 function paths() {
-    this.root = path.resolve(path.join(__dirname));
-    this.src = path.join(root, 'src');
+    this.root = path.resolve(path.join(__dirname), '../../');
+    this.src = path.join(this.root, 'src');
     this.srcIndexEntry = path.join(this.src, 'index.tsx');
-    this.srcAssets = path.join(this.src, 'assets');
-    this.srcAssetsScss = path.join(this.src, 'scss');
-    this.srcAssetsScssEntry = path.join(this.srcAssetsScssEntry);
+    this.srcScss = path.join(this.src, 'assets', 'scss');
+    this.srcScssEntry = path.join(this.srcScss, 'app.scss');
+    this.srcScssVendorEntry = path.join(this.srcScss, 'vendor.scss');
     
     this.dst = path.join(this.root, 'dist');
-    this.dstVendor = path.join(this.dst, 'vendor');
+    
+    this.build = path.join(this.root, 'build');
+    this.buildHtmlTemplates = path.join(this.build, 'htmlTemplates');
+    this.buildHtmlTemplatesLocalIndex = path.join(this.buildHtmlTemplates, 'local.index.html');
+
+    this.nodemodules = path.join(this.root, 'node_modules');    
 }
 
 export default new paths();
@@ -338,24 +386,29 @@ import HtmlWebpackPlugin from 'html-webpack-plugin'; //docs -> https://webpack.j
 import tsConfigPathPlugin from 'tsconfig-paths-webpack-plugin'; //docs -> https://www.npmjs.com/package/tsconfig-paths-webpack-plugin
 import TerserPlugin from 'terser-webpack-plugin'; //docs -> https://github.com/webpack-contrib/terser-webpack-plugin
 import sass from 'sass'; //docs -> https://sass-lang.com/install
+import ESLintPlugin from 'eslint-webpack-plugin'; //docs -> https://github.com/webpack-contrib/eslint-webpack-plugin
 
 
 //separate so we can call it differently pending on build environment
-//This function will compute the array of plugins we want to use for the web pack build being executed.
 function getPlugins(env) {
     const htmlWebPackPlugin = new HtmlWebpackPlugin({
         title: 'Your App Name Here',
         fileName: 'index.html', //you can set whatever filename you want here, i.e. index.php if you wanted to generate a php file that will be served by an existing php app.
-        template: paths.buildHtmlTemplatesLocalIndex, //this points to our htmlTemplate in the build folder
+        template: paths.buildHtmlTemplatesLocalIndex,
         inject: 'body', //tell html webpack plugin where to inject scripts, body places them at end of body
-        publicPath: '/', //tells the html file to generate script links such as href="/app.js" so they'll load from the root (note: In production you might want absolute urls so you would override this in an environment based config by moving this to paths.js as a config option.)
+        publicPath: '/',
         scriptLoading: 'blocking', //this is an SPA so we'll block, but you might want to defer for your use case
         hash: true,
         cache: true,
         showErrors: true
-    });
+    })
+
     return [
-        htmlWebPackPlugin
+        htmlWebPackPlugin,
+        new ESLintPlugin({
+            context: paths.root,
+            extensions: ["js", "jsx", "ts", "tsx"],
+        })
     ]
 }
 
@@ -526,31 +579,8 @@ export function getBaseWebPackConfig(env, argv) {
 
     return config;
 }
+
 ```
-
-## Adding the local webpack config
-
-We can specify an html template for webpack to use to generate the html for our SPA.  You can add w/e you want to the template, webpack will
-inject all of the necessary scripts and styles etc into this html file when it builds.
-
-**Now add a file to build\htmlTemplates called local.index.html and add the following content:**
-
-``` Html
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Cache-control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
-</head>
-<body >
-  <div id="appMainBody"></div>
-</body>
-</html>
-```
-
 ## Add the environment specific web pack config for running locally
 
 Now we'll add the actual file that will be our entry point for webpack, for running locally.  We'll call it local.webpack.config.babel.js
@@ -574,17 +604,31 @@ module.exports = getBaseWebPackConfig
 
 ```
 
+
+**Edit the file build/htmlTemplates/local.index.html and add the following content:**
+
+``` Html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+</head>
+<body >
+  <div id="appMainBody"></div>
+</body>
+</html>
+```
 ## Setting up our SCSS
 
 We'll setup some basic SCSS here just as a rough example, more in depth scss tutorial for setting up bootstrap 5 for fully will have to come in a follow up blog.
 
-1. Create a src folder in the root of the app if not created already.
-2. Under src, create an assets folder.
-3. Under assets, create a folder called scss.
-4. Under scss create two folders, one for themes and one for variables
-5. under themes create a file called _metroTheme.scss and add the following contents: 
+1. Edit the file src/assets/scss/themes/_metroTheme.scss and add the following contents:
 
-``` SCSS
+```
 /* this isn't a complete theme just an example */
 $spacer: 1rem;
 $enable-rounded: false;
@@ -595,45 +639,42 @@ $enable-prefers-reduced-motion-media-query: true;
 $enable-responsive-font-sizes: true;
 ```
 
-6. under variables create a file called _vendorVariables.scss and add the following contents:
+2. Edit the file src/assets/variables/_vendorVariables.scss and add the following contents:
 
-``` SCSS
+```
 @import '../themes/metroTheme';
 ```
 
-7. Under scss create a file called vendor.scss and add the following contents: 
+3. Edit the file src/assets/scss/app.scss and add the following contents: 
 
-``` SCSS
+```
+/* reimport variables so we have them in app scss */
+@import './themes/metroTheme';
+@import '~/bootstrap/scss/_variables';
+```
+
+4. Edit the file src/assets/scss/vendor.scss and add the following contents:
+
+```
 $fa-font-path: '~font-awesome/fonts';
 @import './variables/vendorVariables';
 @import '~bootstrap/scss/bootstrap';
 @import '~font-awesome/scss/font-awesome';
 ```
 
-8. Under scss create a file called app.scss and add the following contents:
-
-``` SCSS
-/* reimport variables so we have them in app scss */
-@import './themes/metroTheme';
-@import '~/bootstrap/scss/_variables';
-```
-
-## Add basic structure for React App src files
-
-1. Under src create a folder called components
-2. Under components create a folder called routes
-3. Under routes create a folder called home
-4. Under home create a file called index.tsx and HomeRoute.tsx
-
-**Add the following contents to HomeRoute.tsx:**
+**Add the following contents to src/components/routes/home/HomeRoute.tsx:**
 
 ``` TSX
-import React from 'react';
+import React, { useState } from 'react';
 import { Container, Col, Row } from 'react-bootstrap';
 
-export const HomeRoute = () => {
+export const HomeRoute = () : React.ReactElement => {
+    const [testState] = useState<boolean>(true);
+    if (testState) {
+        const [oppsState] = useState<boolean>(false); //broken on purpose to show linting errors.
+    }
     return (
-        <Container fluid className="px-0">
+        <Container fluid className="gx-0">
             <Row>
                 <Col xs={12}>
                     <h1 className="bg-primary text-center">Hello World!</h1>
@@ -644,19 +685,19 @@ export const HomeRoute = () => {
 }
 ```
 
-**Add the following contents to home/index.tsx**
+**Add the following contents to src/components/routes/home/index.tsx**
 
 ``` Tsx
 export * from './HomeRoute'; //exports all things exported by HomeRoute.tsx
 ```
 
-5. Under routes add a file called index.tsx and add the following contents for it: 
+**Add the following contents to src/components/routes/index.tsx**
 
 ``` TSX
 export * as Home from './home'; //exports all things exports by index.tsx under /home
 ```
 
-6. Under Components create a file called App.Tsx and add the following contents:
+** Add the following contents to src/components/app.tsx**
 
 ``` TSX
 import React from 'react';
@@ -678,14 +719,14 @@ export const App = () => {
 }
 ```
 
-> Confused what the index files are for?  Imports in es6/typescript automatically look for a file called index with various extensions like .js or .ts or .jsx or .tsx.  So when you do ```import thing from 'somepath'``` the import resolver will either look for something at the root called "somepath" and import that, or look for something in the 'somepath' folder called index and load that.  So by exporting everything from inside an index it lets you import many things from one path which saves boiler plate on import statements so you can do something like the following:
+> In case you are confused what the index files are for... Imports in es6/typescript automatically look for a file called index with various extensions like .js or .ts or .jsx or .tsx.  So when you do ```import thing from 'somepath'``` the import resolver will either look for something at the root called "somepath" and import that, or look for something in the 'somepath' folder called index and load that.  So by exporting everything from inside an index it lets you import many things from one path which saves boiler plate on import statements so you can do something like the following:
 
 ```
 import { Animal, Dog, Cat, Cow, Horse, Pig } from '@models' //where @models is a type alias in the paths section of your 
 //tsconfig.json were @models points to a folder with an index file exporting all of your models. for i.e.
 ```
 
-7. Under src, create a file called index.tsx (this will be our main entry point) and add the following contents:
+**Under src, create/edit a file called index.tsx (this will be our main entry point) and add the following contents:**
 
 ```
 import React from 'react';
@@ -712,7 +753,7 @@ render(index(), document.getElementById('appMainBody'));
 //install the main depdencies 
 
 //note - using beta versions of react-router and react-bootstrap
-yarn add @popperjs/core bootstrap@5 font-awesome history react react-bootstrap@2.0.0-beta.5 react-dom react-router-dom@6.0.0-beta.2 react-router@6.0.0-beta.2
+yarn add @popperjs/core bootstrap@"^5.0.0" font-awesome history react@"^17.0.0" react-dom@"^17.0.0" react-bootstrap@"^2.0.0-beta.5" react-router-dom@"^6.0.0-beta.2" react-router@"^6.0.0-beta.2"
 
 //Install typescript types for depedencies
 yarn add @types/react @types/react-bootstrap @types/react-dom @types/react-router @types/react-router-dom
@@ -751,16 +792,49 @@ Run the following command:
 
 Your webserver should be spinning up and the app should load on port 9000.
 
-
 ## Testing the linter hook rules.
 
 Let's test if the linter's rules of hooks is working...
 
 Edit your HomeRoute.tsx and change the content to the following:
 
+```
+import React, { useState } from 'react';
+import { Container, Col, Row } from 'react-bootstrap';
+
+export const HomeRoute = () : React.ReactElement => {
+    const [testState] = useState<boolean>(true);
+    if (testState) {
+        const [oppsState] = useState<boolean>(false);
+    }
+    return (
+        <Container fluid className="gx-0">
+            <Row>
+                <Col xs={12}>
+                    <h1 className="bg-primary text-center">Hello World!</h1>
+                </Col>
+            </Row>
+        </Container>
+    )
+}
+```
+
+When you reload the page or (HMR reloads it) you should see the following linter errors:
+
+![](https://github.com/rmannjbs/WP5ReactTSFromScratch/blob/master/blogAssets/images/esLintHookErrorUnusedVar.png?raw=true)
 
 
+## Wrapping up Part 1
 
+You have now walked through installing yarn and many depedencies needed for a react/typescript/scss project.  You should have full eslint running.  If you are not getting linting in VSCode you are likely missing the ESLint plugin or you need to configure your user settings in VS Code to enable the file extensions:
 
+### -> settings.json (VS Code)
+``` JSON 
+        "eslint.validate": [ "javascript", "javascriptreact", "html", "typescriptreact" ]
+```
 
-TODO | Test, Final Output, Add hot module reload.  Blog 2 - How to optimize bundle output
+You have setup a local webpack config with an environment flag.  If you want to add web pack config's for specific environments you can add them to the build/webpack folder and add new script entries for them in package json.
+
+In part #2 of this blog, I'll cover debugging your build scripts in node.js in VS Code enabling you to breakpoint and walk through your build files in the VS Code debugger.
+
+Part #3 will likely cover adding a testing layer, like Jest.

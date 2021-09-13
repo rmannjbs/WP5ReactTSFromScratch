@@ -4,7 +4,7 @@ function paths() {
     this.root = path.resolve(path.join(__dirname), '../../');
     this.src = path.join(this.root, 'src');
     this.srcIndexEntry = path.join(this.src, 'index.tsx');
-    this.srcScss = path.join(this.src, 'scss');
+    this.srcScss = path.join(this.src, 'assets', 'scss');
     this.srcScssEntry = path.join(this.srcScss, 'app.scss');
     this.srcScssVendorEntry = path.join(this.srcScss, 'vendor.scss');
     
