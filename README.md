@@ -68,18 +68,20 @@ yarn add -D postcss sass@1.32 postcss-preset-env autoprefixer
 >Note, I'm using sass@1.32 here because the latest version of sass has deprecated warnings to prep scss authors for breaking changes in sass@2.0.0 and some libraries like font-awesome haven't updated their use of the / (division) operator to the new math library yet.  So to not get spammed with deprecation warnings
 in this project I have stopped at the last sass version before the warnings were added.  If you don't need SASS this is irrelevant.  If none of your depedencies use / operator for division in their scss files then you can use the latest version without getting spammed with deperecated warnings from the libraries.
 
-**Add the post css config to your package.json by adding it as a new root level property in the json:**
+**Add the postcss.config.js file to the root of your project:**
 
-``` JSON
-  "postcss": {
-    "plugins": {
-      "autoprefixer": {},
-      "postcss-preset-env": {
-        "browsers": "last 2 versions",
-        "stage": 0
-      }
-    }
-  }
+``` Javascript
+module.exports = {
+    plugins: [
+        [
+            "postcss-preset-env",
+            {
+                // Options
+            },
+        ],
+        require('autoprefixer'),
+    ],
+};
 ```
 
 **note this tells postcss to use autoprefixer for the last 2 major browser versions, you might want to edit your browser targets to suit your needs.**
@@ -386,7 +388,7 @@ import HtmlWebpackPlugin from 'html-webpack-plugin'; //docs -> https://webpack.j
 import tsConfigPathPlugin from 'tsconfig-paths-webpack-plugin'; //docs -> https://www.npmjs.com/package/tsconfig-paths-webpack-plugin
 import TerserPlugin from 'terser-webpack-plugin'; //docs -> https://github.com/webpack-contrib/terser-webpack-plugin
 import sass from 'sass'; //docs -> https://sass-lang.com/install
-import ESLintPlugin from 'eslint-webpack-plugin'; //docs -> https://github.com/webpack-contrib/eslint-webpack-plugin
+import ESLintPlugin from 'eslint-webpack-plugin';
 
 
 //separate so we can call it differently pending on build environment
@@ -590,20 +592,211 @@ Now we'll add the actual file that will be our entry point for webpack, for runn
 **Go ahead and create a file in build/webpack called local.webpack.config.babel.js with the following contents:**
 
 ``` Javascript
+import paths from '../config/paths'; //*our helper paths config so we don't do path calcs in here*
+//plugins for webpack
+import HtmlWebpackPlugin from 'html-webpack-plugin'; //docs -> https://webpack.js.org/plugins/html-webpack-plugin/
+import tsConfigPathPlugin from 'tsconfig-paths-webpack-plugin'; //docs -> https://www.npmjs.com/package/tsconfig-paths-webpack-plugin
+import TerserPlugin from 'terser-webpack-plugin'; //docs -> https://github.com/webpack-contrib/terser-webpack-plugin
+import sass from 'sass'; //docs -> https://sass-lang.com/install
+import ESLintPlugin from 'eslint-webpack-plugin';
 
-import { getBaseWebPackConfig } from './baseWebPackConfig'; //import the base webpack config
 
-//this would be a good place where you can override any thing you want in the base webpack config which would 
-//require some rework on the baseWebPackConfig.  For example you could break out all the webpack module rules, plugins etc and then import them
-//here and build a custom webpack config just for local.  Or maybe you just want to have a wrapper function you call and pass it some environment
-//flags you can process.
+//separate so we can call it differently pending on build environment
+function getPlugins(env) {
+    const htmlWebPackPlugin = new HtmlWebpackPlugin({
+        title: 'Your App Name Here',
+        fileName: 'index.html', //you can set whatever filename you want here, i.e. index.php if you wanted to generate a php file that will be served by an existing php app.
+        template: paths.buildHtmlTemplatesLocalIndex,
+        inject: 'body', //tell html webpack plugin where to inject scripts, body places them at end of body
+        publicPath: '/',
+        scriptLoading: 'blocking', //this is an SPA so we'll block, but you might want to defer for your use case
+        hash: true,
+        cache: true,
+        showErrors: true
+    })
 
-//Note* we get environment info in the webpack config for free, which will be illustrated soon when we set of the package.json scripts.
+    return [
+        htmlWebPackPlugin,
+        new ESLintPlugin({
+            context: paths.root,
+            extensions: ["js", "jsx", "ts", "tsx"],
+        })
+    ]
+}
 
-module.exports = getBaseWebPackConfig
+//separate function to get the config so we can call it from environment based config files.
+export function getBaseWebPackConfig(env, argv) {
+    let config = {};
+    config.mode = 'development'; //we'll set the mode here, you could set this differently pending on the value of env or argv being passed in from command line
+    const isLocalDev = argv.env.localdev ? true : false;
+
+    //get the plugins from our getPlugins helper
+    config.plugins = getPlugins(env);
+
+    //read up on code splitting, you can use this entry object to define your app as separate entry chunks that depend on each other to optimize
+    //how webpack generates your bundle.
+    config.entry = {
+        //here we are defining two entries which will be separate chunks and we are telling webpack 
+        //that the app entry depends on the vendor entry.
+        //we'll configure our vendor styles (bootstrap/overrides etc to be output in a separate chunk)
+        vendorStyles: {
+            import: paths.srcScssVendorEntry
+        },
+        appStyles: {
+            import: paths.srcScssEntry,
+            dependOn: 'vendorStyles'
+        },
+        app: {
+            import: paths.srcIndexEntry,
+            dependOn: 'appStyles'
+        }
+    }
+
+    config.output = {
+        filename: '[name].[contenthash].js', //we have more than one chunk, so we want webpack to output based on the chunks name (app or vendor) and it's content hash
+        //the content hash will change when the files content changes
+        path: paths.dst, //this tells webpack where to output the files, here we're using the path we calculating in our config paths helper
+        clean: true, //this tells webpack to clean the output path first, so if the files exist they'll be cleaned up first.
+        assetModuleFilename: 'assets/[name][ext]' //make assets have friendly names
+    }
+
+
+    config.resolve = {
+        extensions: [".scss", ".js", ".jsx", ".tsx", ".ts"],
+        plugins: [
+            new tsConfigPathPlugin() //this is the third final piece to using tsConfig as a source of truth for path aliases, it tells webpack to use it to resolve aliases in our actual code during compilation.
+        ]
+    }
+
+
+    //rules tell webpack what to do on specific tests, so 
+    //we need to tell webpack what to do when it's processing a type script file
+    //or a scss file or an image, etc etc etc.
+    config.module = {
+        rules: [
+            {
+                test: /\.(js|ts)x?$/i, //here we define a regex that will run on all ts or js files with tsx or jsx.
+                exclude: /[\\/]node_modules[\\/]/, //we tell the loader to ignore node_modules, we will split all node modules out in the vendor chunk
+                use: [
+                    {
+                        loader: 'babel-loader', //use the babel loader
+                        options: {
+                            presets: [
+                                '@babel/preset-env', //use presets for env, react, and typescript
+                                '@babel/preset-react',
+                                '@babel/preset-typescript'
+                            ]
+                        }
+                    },
+                    {
+                        loader: 'source-map-loader',
+                        options: {
+
+                        }
+                    }
+                ]
+            },
+            {
+                //this is another webpack 5 feature you don't get with CRA on webpack 4.  It can automatically pull any 
+                //files we reference and spit them out as assets in the output folder.  In webpack 4 you had to use file loader, url loader, and so on
+                //no more with webpack 5, much simpler.
+                test: /\.(woff(2)?|ttf|eot|svg|jpg|jpeg|png|gif|pdf)(\?v=\d+\.\d+\.\d+)?$/, //here we tell webpack that all fonts, images, pdfs are are asset/resource
+                type: 'asset/resource'
+            },
+            {
+                test: /\.(scss|sass)$/, //tell webpack how to process scss and sass files
+                include: [
+                    paths.src,
+                    paths.nodemodules //our vendor files etc will resolve files from node_modules so we need to tell webpack sass to include node_modules
+                ],
+                use: [ //use tells this rule what loaders to use, loaders are used in a last to first order.  So the last loader is processed first, then the loader above it, till the first loader.
+                    {
+                        //note, in production you should use a css extractor here instead but extracting css is slow so using style-loader is much faster in development
+                        loader: 'style-loader', // docs -> https://webpack.js.org/loaders/style-loader/
+                        options: {
+                            esModule: false,
+                            insert: 'head'
+                        }
+                    },
+                    {
+                        loader: 'css-loader', //docs -> https://www.npmjs.com/package/css-loader
+                        options: {
+                            modules: false, //disable modules, this build isn't using styled components in react
+                            esModule: false,  //disable es module syntax
+                            sourceMap: true //Enables/Disables generation of source maps
+                        }
+                    },
+                    {
+                        loader: 'postcss-loader', //docs -> https://github.com/webpack-contrib/postcss-loader
+                        options: {
+                            sourceMap: true
+                        }
+                    },
+                    {
+                        loader: 'sass-loader',
+                        options: {
+                            sourceMap: true,
+                            implementation: sass
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+
+    //you have control over optimization here, i.e. you can tell webpack
+    //how to split chunks and can create test functions for say CSS so css get's extracted to it's own chunk.
+    config.optimization = { // these are the defaults from  //docs -> https://webpack.js.org/plugins/split-chunks-plugin/#defaults
+        splitChunks: {
+            chunks: 'async',
+            minSize: 20000,
+            minRemainingSize: 0,
+            minChunks: 1,
+            maxAsyncRequests: 30,
+            maxInitialRequests: 30,
+            enforceSizeThreshold: 50000,
+            cacheGroups: {
+                defaultVendors: {
+                    test: /[\\/]node_modules[\\/]/,
+                    priority: -10,
+                    reuseExistingChunk: true,
+                },
+                default: {
+                    minChunks: 2,
+                    priority: -20,
+                    reuseExistingChunk: true,
+                },
+            },
+        },
+    }
+
+
+    //only run the dev server if we're in local dev passed in from command line args.
+    if (isLocalDev) {
+        console.log('DEV SERVER');
+        config.devtool = 'eval-source-map';
+        config.devServer = {
+            historyApiFallback: true,
+            hot: true, //turns on hot module reloading capability so when we change src it reloads the module we changed, thus causing a react rerender!
+            port: 9000,
+            client: {
+                progress: true,
+                overlay: true,
+                logging: 'info' //give us all info logged to client when in local dev mode
+            },
+            static: {
+                publicPath: '/',
+                directory: paths.dst
+            }
+        }
+    } else {
+        config.devtool = 'source-map';
+    }
+
+    return config;
+}
 
 ```
-
 
 **Edit the file build/htmlTemplates/local.index.html and add the following content:**
 
@@ -702,8 +895,7 @@ export * as Home from './home'; //exports all things exports by index.tsx under 
 ``` TSX
 import React from 'react';
 import { BrowserRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom';
-import * as AppRoutes from './routes';
-import { HomeRoute } from './routes/home';
+import { HomeRoute } from '@routes/home'; //earlier I talked about the @routes path alias in the TSConfig, this is an example of using it.  It's a short cut so you don't have to folder drill with ../../ etc all over your app.
 
 export const App = () => {
     return (
@@ -774,39 +966,44 @@ yarn add @types/react @types/react-bootstrap @types/react-dom @types/react-route
 
 ## Run the build
 
-Let's test the output of the build now and see if it runs and generates our dst folder we made in the webpack config and the paths.js config file, run the following command:
+Let's test the output of the build now and see if it runs and generates lint errors as expected:
 
 ```
 yarn build
 ```
 
 Your output should resemble: 
-![](https://github.com/rmannjbs/WP5ReactTSFromScratch/blob/master/blogAssets/images/buildOutput.png?raw=true)
+![](https://github.com/rmannjbs/WP5ReactTSFromScratch/blob/master/blogAssets/images/yarnBuildLintError.png?raw=true)
 
+Let's fix the lint errors:
 
-## Run the debug server and work on the code locally
-
-Run the following command: 
-
-``` yarn start ```
-
-Your webserver should be spinning up and the app should load on port 9000.
-
-## Testing the linter hook rules.
-
-Let's test if the linter's rules of hooks is working...
-
-Edit your HomeRoute.tsx and change the content to the following:
+Change App.tsx to the following:
 
 ```
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom';
+import { HomeRoute } from '@routes/home'; //earlier I talked about the @routes path alias in the TSConfig, this is an example of using it.  It's a short cut so you don't have to folder drill with ../../ etc all over your app.
+
+export const App = (): React.ReactElement => {
+    return (
+        <BrowserRouter>
+            <Routes>                              
+                <Route path="/home" element={<Outlet />}>
+                    <Route path="/" element={(<HomeRoute />)} />                    
+                </Route>                
+                <Route path="*" element={<Navigate to="/home" /> } />
+            </Routes>
+        </BrowserRouter>
+    )
+}
+```
+
+** Change HomeRoute.tsx to the following ** 
+```
+import React from 'react';
 import { Container, Col, Row } from 'react-bootstrap';
 
 export const HomeRoute = () : React.ReactElement => {
-    const [testState] = useState<boolean>(true);
-    if (testState) {
-        const [oppsState] = useState<boolean>(false);
-    }
     return (
         <Container fluid className="gx-0">
             <Row>
@@ -819,11 +1016,16 @@ export const HomeRoute = () : React.ReactElement => {
 }
 ```
 
-When you reload the page or (HMR reloads it) you should see the following linter errors:
-
-![](https://github.com/rmannjbs/WP5ReactTSFromScratch/blob/master/blogAssets/images/esLintHookErrorUnusedVar.png?raw=true)
+** rerun yarn build and your lint errors should go away and you should have a dist folder with output files in it **
 
 
+## Run the local server and work on the code locally
+
+Run the following command: 
+
+``` yarn start ```
+
+Your webserver should be spinning up and the app should load on port 9000.
 ## Wrapping up Part 1
 
 You have now walked through installing yarn and many depedencies needed for a react/typescript/scss project.  You should have full eslint running.  If you are not getting linting in VSCode you are likely missing the ESLint plugin or you need to configure your user settings in VS Code to enable the file extensions:

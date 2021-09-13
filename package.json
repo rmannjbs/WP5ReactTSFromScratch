@@ -99,15 +99,6 @@
       ]
     ]
   },
-  "postcss": {
-    "plugins": {
-      "autoprefixer": {},
-      "postcss-preset-env": {
-        "browsers": "last 2 versions",
-        "stage": 0
-      }
-    }
-  },
   "homepage": "https://github.com/rtmann/ReactTSFromScratch#readme",
   "devDependencies": {
     "@babel/core": "^7.15.0",
