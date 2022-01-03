@@ -1,11 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Container, Col, Row } from 'react-bootstrap';
 
-export const HomeRoute = () : React.ReactElement => {
-    const [testState] = useState<boolean>(true);
-    if (testState) {
-        const [oppsState] = useState<boolean>(false);
-    }
+export const HomeRoute = () : React.ReactElement => {    
     return (
         <Container fluid className="gx-0">
             <Row>
