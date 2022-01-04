@@ -181,6 +181,7 @@ export function getBaseWebPackConfig(env, argv) {
             historyApiFallback: true,
             hot: true, //turns on hot module reloading capability so when we change src it reloads the module we changed, thus causing a react rerender!
             port: 9000,
+            open: false,            
             client: {
                 progress: true,
                 overlay: true,
